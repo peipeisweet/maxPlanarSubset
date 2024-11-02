@@ -1,33 +1,7 @@
-CXX = g++
-CXXFLAGS = -std=c++11 -O2 -Wall
-SRC_DIR = src
-BIN_DIR = bin
+PP = g++
 
-# Source files
-SRCS = $(SRC_DIR)/main.cpp $(SRC_DIR)/maxPlanarSubset.cpp
-OBJS = $(SRCS:.cpp=.o)
+main : ./src/main.cpp ./src/maxPlanarSubset.cpp
+	$(PP) -std=c++11 -O3 ./src/main.cpp ./src/maxPlanarSubset.cpp -o ./bin/mps
 
-# Target executable
-TARGET = $(BIN_DIR)/mps
-
-# Default target
-all: $(TARGET)
-
-# Create bin directory if it doesn't exist
-$(BIN_DIR):
-	mkdir -p $(BIN_DIR)
-
-# Compile source files to object files
-%.o: %.cpp
-	$(CXX) $(CXXFLAGS) -c $< -o $@
-
-# Link object files to create executable
-$(TARGET): $(OBJS) | $(BIN_DIR)
-	$(CXX) $(OBJS) -o $(TARGET)
-
-# Clean up
-clean:
-	rm -f $(OBJS)
-	rm -rf $(BIN_DIR)
-
-.PHONY: all clean
+clean : 
+	rm ./bin/mps
