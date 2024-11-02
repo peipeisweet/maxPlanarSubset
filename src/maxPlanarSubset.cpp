@@ -1,59 +1,127 @@
+//File name : maxPlanarSubset.cpp
+//Student ID : b11901072
+
 #include "maxPlanarSubset.h"
+#include <fstream>
 #include <algorithm>
+#include <iostream>
+
 using namespace std;
 
-MaxPlanarSubset::MaxPlanarSubset(int size) : n(size) {
-    dp.resize(2*n, std::vector<int>(2*n, -1));
-    path.resize(2*n, std::vector<int>(2*n, -1));
-}
-
-bool MaxPlanarSubset::intersect(const Chord& a, const Chord& b) {
-    return !((a.start < b.start && a.end < b.start) ||
-            (a.start > b.end && a.end > b.end) ||
-            (a.start > b.start && a.end < b.end) ||
-            (a.start < b.start && a.end > b.end));
-}
-
-void MaxPlanarSubset::addChord(int start, int end) {
-    chords.push_back(Chord(start, end));
-}
-
-void MaxPlanarSubset::reconstructSolution(int i, int j, std::vector<Chord>& result) {
-    if (i >= j) return;
+int MPS::mps(int start, int end) {
+    _dp.assign(_num_point, vector<int>(_num_point, 0));
     
-    if (path[i][j] == -1) {
-        reconstructSolution(i + 1, j, result);
-    } else {
-        result.push_back(Chord(i, path[i][j]));
-        reconstructSolution(i + 1, path[i][j] - 1, result);
-        reconstructSolution(path[i][j] + 1, j, result);
-    }
-}
-
-int MaxPlanarSubset::solve(int i, int j) {
-    if (i >= j) return 0;
-    if (dp[i][j] != -1) return dp[i][j];
-
-    // Don't include chord starting at i
-    int val = solve(i + 1, j);
-    
-    // Try to include chords starting at i
-    for (const Chord& chord : chords) {
-        if (chord.start == i && chord.end <= j) {
-            int current = 1 + solve(i + 1, chord.end - 1) + solve(chord.end + 1, j);
-            if (current > val) {
-                val = current;
-                path[i][j] = chord.end;
+    // Fill DP table for increasing lengths
+    for (int len = 1; len < _num_point; len++) {
+        for (int i = 0; i + len < _num_point; i++) {
+            int j = i + len;
+            
+            // Default: don't use position j
+            _dp[i][j] = (len == 1) ? 0 : _dp[i][j-1];
+            
+            // Check if we can use chord ending at j
+            int k = _chord_tab[j];
+            if (k >= i && k < j) {
+                if (k == i) {
+                    // Direct connection
+                    int temp = (i + 1 < j) ? _dp[i+1][j-1] : 0;
+                    _dp[i][j] = max(_dp[i][j], 1 + temp);
+                } else {
+                    // Connection through k
+                    int temp = 1;
+                    if (k > i) temp += _dp[i][k-1];
+                    if (k + 1 < j) temp += _dp[k+1][j-1];
+                    _dp[i][j] = max(_dp[i][j], temp);
+                }
             }
         }
     }
-
-    dp[i][j] = val;
-    return val;
+    
+    return _dp[start][end];
 }
 
-std::vector<Chord> MaxPlanarSubset::getSolution() {
-    std::vector<Chord> result;
-    reconstructSolution(0, 2*n-1, result);
-    return result;
+void MPS::find_solution(int i, int j) {
+    if (j <= i) return;
+    
+    int k = _chord_tab[j];
+    if (k < i || k > j) {
+        find_solution(i, j-1);
+        return;
+    }
+    
+    if (k == i) {
+        _result.emplace_back(i, j);
+        find_solution(i+1, j-1);
+        return;
+    }
+    
+    // Compare using chord (k,j) vs not using it
+    int score_with_k = 1;
+    if (k > i) score_with_k += _dp[i][k-1];
+    if (k + 1 < j) score_with_k += _dp[k+1][j-1];
+    
+    if (score_with_k > _dp[i][j-1]) {
+        _result.emplace_back(k, j);
+        find_solution(i, k-1);
+        find_solution(k+1, j-1);
+    } else {
+        find_solution(i, j-1);
+    }
+}
+
+void MPS::mps_k(int i, int j) {
+    _result.clear();
+    find_solution(i, j);
+}
+
+bool MPS::loadfile(const char*& filename) {
+    ifstream file(filename);
+    if (!file.is_open()) {
+        cerr << "Error: failed to open file " << filename << endl;
+        return false;
+    }
+    
+    if (!(file >> _num_point)) {
+        cerr << "Error: failed to read number of points" << endl;
+        return false;
+    }
+    
+    _num = _num_point / 2;
+    _chord_tab.assign(_num_point, -1);
+    
+    int i, j;
+    while (file >> i >> j) {
+        if (i >= 0 && i < _num_point && j >= 0 && j < _num_point) {
+            _chord_tab[i] = j;
+            _chord_tab[j] = i;
+        }
+    }
+    
+    file.close();
+    return true;
+}
+
+bool MPS::outputfile(const string& filename) {
+    ofstream file(filename);
+    if (!file.is_open()) {
+        cerr << "Error: failed to write file " << filename << endl;
+        return false;
+    }
+    
+    file << _result.size() << endl;
+    
+    sort(_result.begin(), _result.end());
+    for (const auto& pair : _result) {
+        file << pair.first << " " << pair.second << endl;
+    }
+    
+    file.close();
+    return true;
+}
+
+int MPS::getpair(const int i, const int j) {
+    if (i >= 0 && i < _num_point && j >= 0 && j < _num_point) {
+        return _dp[i][j];
+    }
+    return 0;
 }

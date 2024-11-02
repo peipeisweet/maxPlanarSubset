@@ -1,49 +1,38 @@
-#include "maxPlanarSubset.h"
+//File name : main.cpp
+//Student ID : b11901072
+
 #include <iostream>
-#include <fstream>
-#include <algorithm>
+#include <iomanip>
+#include <cstring>
+#include <string>
+#include <sstream>
+#include "maxPlanarSubset.h"
+
 using namespace std;
 
-int main(int argc, char* argv[]) {
-    // Check command line arguments
+int main(int argc, char const *argv[]) {
     if (argc != 3) {
-        std::cerr << "Usage: " << argv[0] << " <input_file> <output_file>" << std::endl;
-        return 0;
+        cerr << "Usage: " << argv[0] << " <input_file> <output_file>" << endl;
+        return 1;
     }
 
-    // Open input and output files
-    std::ifstream inFile(argv[1]);
-    std::ofstream outFile(argv[2]);
-
-    // Process each test case
-    int vertices;
-    while (inFile >> vertices && vertices != 0) {
-        int n = vertices / 2;  // number of chords
-        MaxPlanarSubset mps(n);
-
-        // Read chords
-        for (int i = 0; i < n; i++) {
-            int start, end;
-            inFile >> start >> end;
-            mps.addChord(start, end);
+    MPS mps;
+    int _n;
+    
+    if (mps.loadfile(argv[1])) {
+        _n = mps.getnumber();
+        int mps_val = mps.mps(0, 2 * _n - 1);
+        mps.mps_k(0, 2 * _n - 1);
+        
+        string output_filename = argv[2];
+        if (!mps.outputfile(output_filename)) {
+            cerr << "Failed to write the output file." << endl;
+            return 1;
         }
-
-        // Solve and get result
-        int maxChords = mps.solve(0, vertices-1);
-        std::vector<Chord> solution = mps.getSolution();
-
-        // Sort solution by first endpoint
-        std::sort(solution.begin(), solution.end(), 
-                 [](const Chord& a, const Chord& b) { return a.start < b.start; });
-
-        // Output results
-        outFile << maxChords << std::endl;
-        for (const Chord& chord : solution) {
-            outFile << chord.start << " " << chord.end << std::endl;
-        }
+    } else {
+        cerr << "Failed to read the input file." << endl;
+        return 1;
     }
-
-    inFile.close();
-    outFile.close();
+    
     return 0;
 }
